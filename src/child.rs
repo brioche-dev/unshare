@@ -95,6 +95,14 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
+    if let Some(callback) = child.before_chroot {
+        if let Err(e) = callback() {
+            fail_errno(Err::BeforeChroot,
+                e.raw_os_error().unwrap_or(10873289),
+                epipe);
+        }
+    }
+
     child.pivot.as_ref().map(|piv| {
         if ffi::pivot_root(piv.new_root.as_ptr(), piv.put_old.as_ptr()) != 0 {
             fail(Err::ChangeRoot, epipe);
@@ -108,6 +116,7 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
             }
         }
     });
+
 
     child.chroot.as_ref().map(|chroot| {
         if libc::chroot(chroot.root.as_ptr()) != 0 {
@@ -173,11 +182,15 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     });
 
-    child.cfg.work_dir.as_ref().map(|dir| {
-        if libc::chdir(dir.as_ptr()) != 0 {
-            fail(Err::Chdir, epipe);
-        }
-    });
+    // we have already set the working directory if chroot
+    // is enabled.
+    if let None = child.chroot {
+        child.cfg.work_dir.as_ref().map(|dir| {
+            if libc::chdir(dir.as_ptr()) != 0 {
+                fail(Err::Chdir, epipe);
+            }
+        });
+    }
 
 
     for &(dest_fd, src_fd) in child.fds {
@@ -215,9 +228,9 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     }
 
-    if let Some(callback) = child.pre_exec {
+    if let Some(callback) = child.before_exec {
         if let Err(e) = callback() {
-            fail_errno(Err::PreExec,
+            fail_errno(Err::BeforeExec,
                 e.raw_os_error().unwrap_or(10873289),
                 epipe);
         }

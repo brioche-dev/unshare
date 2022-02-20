@@ -38,7 +38,7 @@ pub struct ChildInfo<'a> {
     pub filename: *const c_char,
     pub args: &'a [*const c_char],
     // this is mut because we write pid to environ
-    pub environ: &'a [*mut c_char],
+    pub environ: &'a [*mut std::os::raw::c_char],
     pub cfg: &'a Config,
     pub chroot: &'a Option<Chroot>,
     pub pivot: &'a Option<Pivot>,
@@ -51,7 +51,9 @@ pub struct ChildInfo<'a> {
     pub setns_namespaces: &'a [(CloneFlags, RawFd)],
     pub pid_env_vars: &'a [(usize, usize)],
     pub keep_caps: &'a Option<[u32; 2]>,
-    pub pre_exec: &'a Option<Box<dyn Fn() -> Result<(), io::Error>>>,
+    pub before_exec: &'a Option<Box<dyn Fn() -> Result<(), io::Error>>>,
+    pub before_chroot: &'a Option<Box<dyn Fn() -> Result<(), io::Error>>>,
+
 }
 
 fn raw_with_null(arr: &Vec<CString>) -> Vec<*const c_char> {
@@ -225,7 +227,7 @@ impl Command {
             }
         });
 
-        let mut nstack = [0u8; 4096];
+        let mut nstack = [0u8; 4096*4];
         let mut wakeup = Some(wakeup);
         let mut wakeup_rd = Some(wakeup_rd);
         let mut errpipe_wr = Some(errpipe_wr);
@@ -257,7 +259,8 @@ impl Command {
                 setns_namespaces: &setns_ns,
                 pid_env_vars: &pid_env_vars,
                 keep_caps: &self.keep_caps,
-                pre_exec: &self.pre_exec,
+                before_exec: &self.before_exec,
+                before_chroot : &self.before_chroot,
             };
             child::child_after_clone(&child_info);
         }), &mut nstack[..], self.config.namespaces, Some(SIGCHLD as i32)))?;

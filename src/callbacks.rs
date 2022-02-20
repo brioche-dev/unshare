@@ -27,6 +27,17 @@ impl Command {
         self
     }
 
+    /// Set a callback to run just before chrooting or pivot_root, after chroot, the process runs in the chroot
+    /// jail not allowing it any access to other parts of the filesystem. This callback allows 
+    /// the client to configure anything before this happens.
+    /// This callback runs in the child process. As with the other callbacks running in the
+    /// child, do not perform any allocations or de-allocations here.
+    pub fn before_chroot(&mut self,
+        f: impl Fn() -> io::Result<()> + Send + Sync + 'static)
+    {
+        self.before_chroot = Some(Box::new(f));
+    }
+
     /// Set a callback to run in the child before calling exec
     ///
     /// The callback is executed right before `execve` system calls.
@@ -44,11 +55,11 @@ impl Command {
     /// Note: unlike same method in stdlib,
     /// each invocation of this method **replaces** callback,
     /// so there is only one of them can be called.
-    pub unsafe fn pre_exec(
+    pub unsafe fn before_exec(
         &mut self,
         f: impl Fn() -> io::Result<()> + Send + Sync + 'static,
     ) -> &mut Self {
-        self.pre_exec = Some(Box::new(f));
+        self.before_exec = Some(Box::new(f));
         self
     }
 }
