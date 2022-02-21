@@ -182,15 +182,11 @@ pub unsafe fn child_after_clone(child: &ChildInfo) -> ! {
         }
     });
 
-    // we have already set the working directory if chroot
-    // is enabled.
-    if let None = child.chroot {
-        child.cfg.work_dir.as_ref().map(|dir| {
-            if libc::chdir(dir.as_ptr()) != 0 {
-                fail(Err::Chdir, epipe);
-            }
-        });
-    }
+    child.cfg.work_dir.as_ref().map(|dir| {
+        if libc::chdir(dir.as_ptr()) != 0 {
+            fail(Err::Chdir, epipe);
+        }
+    });
 
 
     for &(dest_fd, src_fd) in child.fds {

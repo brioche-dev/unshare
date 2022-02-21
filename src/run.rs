@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::env::current_dir;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::{self, Read, Write};
@@ -203,27 +202,15 @@ impl Command {
                 new_root: new.to_cstring(),
                 put_old: old.to_cstring(),
                 old_inside: relative_to(old, new, true).unwrap().to_cstring(),
-                workdir: current_dir().ok()
-                    .and_then(|cur| relative_to(cur, new, true))
-                    .unwrap_or(PathBuf::from("/"))
-                    .to_cstring(),
+                workdir: PathBuf::from("/").to_cstring(),
                 unmount_old_root: unmnt,
             }
         });
 
         let chroot = self.chroot_dir.as_ref().map(|dir| {
-            let wrk_rel = if let Some((ref piv, _, _)) = self.pivot_root {
-                piv.join(relative_to(dir, "/", false).unwrap())
-            } else {
-                dir.to_path_buf()
-            };
             Chroot {
                 root: dir.to_cstring(),
-                workdir: current_dir().ok()
-                    .and_then(|cur| relative_to(cur, wrk_rel, true))
-                    .unwrap_or(PathBuf::from("/"))
-                    .to_cstring()
-,
+                workdir: PathBuf::from("/").to_cstring(),
             }
         });
 
