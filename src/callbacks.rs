@@ -1,7 +1,6 @@
 use std::io;
 
-use crate::{Command, BoxError};
-
+use crate::{BoxError, Command};
 
 impl Command {
     /// Set a callback to run when child is already forked but not yet run
@@ -28,13 +27,11 @@ impl Command {
     }
 
     /// Set a callback to run just before chrooting or pivot_root, after chroot, the process runs in the chroot
-    /// jail not allowing it any access to other parts of the filesystem. This callback allows 
+    /// jail not allowing it any access to other parts of the filesystem. This callback allows
     /// the client to configure anything before this happens.
     /// This callback runs in the child process. As with the other callbacks running in the
     /// child, do not perform any allocations or de-allocations here.
-    pub fn before_chroot(&mut self,
-        f: impl Fn() -> io::Result<()> + Send + Sync + 'static)
-    {
+    pub fn before_chroot(&mut self, f: impl Fn() -> io::Result<()> + Send + Sync + 'static) {
         self.before_chroot = Some(Box::new(f));
     }
 
