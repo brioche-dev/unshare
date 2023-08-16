@@ -1,21 +1,21 @@
+use std::collections::HashMap;
 use std::default::Default;
 use std::ffi::CString;
-use std::collections::HashMap;
 
-use nix::sys::signal::{Signal, SIGKILL};
+use libc::{gid_t, uid_t};
 use nix::sched::CloneFlags;
-use libc::{uid_t, gid_t};
+use nix::sys::signal::{Signal, SIGKILL};
 
-use crate::idmap::{UidMap, GidMap};
+use crate::idmap::{GidMap, UidMap};
 use crate::namespace::Namespace;
 use crate::stdio::Closing;
-
 
 pub struct Config {
     pub death_sig: Option<Signal>,
     pub work_dir: Option<CString>,
     pub uid: Option<uid_t>,
     pub gid: Option<gid_t>,
+    pub deny_setgroups: bool,
     pub supplementary_gids: Option<Vec<gid_t>>,
     pub id_maps: Option<(Vec<UidMap>, Vec<GidMap>)>,
     pub namespaces: CloneFlags,
@@ -32,6 +32,7 @@ impl Default for Config {
             work_dir: None,
             uid: None,
             gid: None,
+            deny_setgroups: false,
             supplementary_gids: None,
             id_maps: None,
             namespaces: CloneFlags::empty(),
