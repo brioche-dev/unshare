@@ -10,7 +10,6 @@ use std::ptr;
 
 use libc::{c_char, close};
 use nix;
-use nix::errno::Errno::EINTR;
 use nix::fcntl::OFlag;
 use nix::fcntl::{fcntl, open, FcntlArg};
 use nix::sched::{clone, CloneFlags};
@@ -278,7 +277,7 @@ impl Command {
             kill(pid, SIGKILL).ok();
             loop {
                 match waitpid(pid, None) {
-                    Err(nix::Error::Sys(EINTR)) => continue,
+                    Err(nix::Error::EINTR) => continue,
                     _ => break,
                 }
             }

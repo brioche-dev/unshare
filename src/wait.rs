@@ -6,7 +6,6 @@ use nix::errno::Errno::EINTR;
 use nix::sys::signal::{kill, Signal, SIGKILL};
 use nix::sys::wait::waitpid;
 use nix::unistd::Pid;
-use nix::Error;
 
 use crate::pipe::PipeHolder;
 use crate::{Child, ExitStatus, PipeReader, PipeWriter};
@@ -49,16 +48,8 @@ impl Child {
                 Ok(Stopped(_, _)) => unreachable!(),
                 Ok(Continued(_)) => unreachable!(),
                 Ok(StillAlive) => unreachable!(),
-                Err(Error::Sys(EINTR)) => continue,
-                Err(Error::InvalidPath) => unreachable!(),
-                Err(Error::InvalidUtf8) => unreachable!(),
-                Err(Error::UnsupportedOperation) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "nix error: unsupported operation",
-                    ));
-                }
-                Err(Error::Sys(x)) => return Err(io::Error::from_raw_os_error(x as i32)),
+                Err(EINTR) => continue,
+                Err(errno) => return Err(io::Error::from_raw_os_error(errno as i32)),
             }
         }
     }
@@ -73,14 +64,7 @@ impl Child {
                 "invalid argument: can't kill an exited process",
             ));
         }
-        kill(Pid::from_raw(self.pid), signal).map_err(|e| match e {
-            Error::Sys(x) => io::Error::from_raw_os_error(x as i32),
-            Error::InvalidPath => unreachable!(),
-            Error::InvalidUtf8 => unreachable!(),
-            Error::UnsupportedOperation => {
-                io::Error::new(io::ErrorKind::Other, "nix error: unsupported operation")
-            }
-        })
+        kill(Pid::from_raw(self.pid), signal).map_err(|e| io::Error::from_raw_os_error(e as i32))
     }
 
     /// Kill process with SIGKILL signal

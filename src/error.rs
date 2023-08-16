@@ -213,10 +213,7 @@ pub trait IntoError {
 
 impl IntoError for nix::Error {
     fn into_error(self, code: ErrorCode) -> Error {
-        match self {
-            nix::Error::Sys(x) => code.wrap(x as i32),
-            _ => Error::NixError,
-        }
+        code.wrap(code as i32)
     }
 }
 

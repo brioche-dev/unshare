@@ -4,7 +4,6 @@ use libc::pid_t;
 use nix::errno::Errno::{ECHILD, EINTR};
 use nix::sys::wait::waitpid;
 use nix::sys::wait::WaitPidFlag;
-use nix::Error;
 
 use crate::{ExitStatus, Signal};
 
@@ -31,8 +30,8 @@ impl Iterator for ZombieIterator {
                 Ok(Stopped(_, _)) => continue,
                 Ok(Continued(_)) => continue,
                 Ok(StillAlive) => return None,
-                Err(Error::Sys(EINTR)) => continue,
-                Err(Error::Sys(ECHILD)) => return None,
+                Err(EINTR) => continue,
+                Err(ECHILD) => return None,
                 Err(e) => {
                     panic!("Unexpected waitpid error: {:?}", e);
                 }
@@ -108,8 +107,8 @@ impl Iterator for ChildEventsIterator {
                 Ok(Stopped(pid, sig)) => return Some(Stop(pid.into(), sig)),
                 Ok(Continued(pid)) => return Some(Continue(pid.into())),
                 Ok(StillAlive) => return None,
-                Err(Error::Sys(EINTR)) => continue,
-                Err(Error::Sys(ECHILD)) => return None,
+                Err(EINTR) => continue,
+                Err(ECHILD) => return None,
                 Err(e) => {
                     panic!("Unexpected waitpid error: {:?}", e);
                 }
